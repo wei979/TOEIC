@@ -13,8 +13,11 @@ export default function App() {
   const [result, setResult] = useState(null); // null | "correct" | "wrong"
   const [loading, setLoading] = useState(true);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  // key to force QuizCard remount on next card
   const [cardKey, setCardKey] = useState(0);
+
+  // Session counters for scheduling
+  const [consecutiveUnseen, setConsecutiveUnseen] = useState(0);
+  const [totalShown, setTotalShown] = useState(0);
 
   useEffect(() => {
     fetch("/questions.json")
@@ -29,14 +32,27 @@ export default function App() {
 
   const nextCard = useCallback(() => {
     if (cards.length === 0) return;
-    const card = pickNextCard(cards, currentCard?.id);
+    const card = pickNextCard(cards, {
+      currentCardId: currentCard?.id,
+      consecutiveUnseenCount: consecutiveUnseen,
+      totalShownCount: totalShown,
+    });
     setCurrentCard(card);
     setCardProgress(card ? getCardProgress(card.id) : null);
     setResult(null);
     setCardKey((k) => k + 1);
-  }, [cards, currentCard?.id]);
 
-  // Pick first card after load
+    if (card) {
+      const cp = getCardProgress(card.id);
+      setTotalShown((n) => n + 1);
+      if (cp.status === "unseen") {
+        setConsecutiveUnseen((n) => n + 1);
+      } else {
+        setConsecutiveUnseen(0);
+      }
+    }
+  }, [cards, currentCard?.id, consecutiveUnseen, totalShown]);
+
   useEffect(() => {
     if (!loading && cards.length > 0 && !currentCard) {
       nextCard();
@@ -56,6 +72,8 @@ export default function App() {
     setShowResetConfirm(false);
     setCurrentCard(null);
     setResult(null);
+    setConsecutiveUnseen(0);
+    setTotalShown(0);
     setTimeout(() => nextCard(), 50);
   }
 
@@ -106,6 +124,9 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
+        <div className="session-info">
+          本次已答 {totalShown} 題
+        </div>
         {!showResetConfirm ? (
           <button className="btn-reset" onClick={() => setShowResetConfirm(true)}>
             重置進度

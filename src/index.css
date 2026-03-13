@@ -126,9 +126,34 @@ body {
   align-items: center;
   gap: 8px;
   padding: 12px 16px;
-  background: #1a1a2e;
   color: #fff;
   flex-wrap: wrap;
+}
+
+/* Status-based header colors */
+.card-unseen .card-header {
+  background: #2b6cb0;
+}
+
+.card-seen .card-header {
+  background: #b7791f;
+}
+
+.card-memorized .card-header {
+  background: #276749;
+}
+
+/* Status-based left border accent */
+.quiz-card.card-unseen {
+  border-left: 5px solid #2b6cb0;
+}
+
+.quiz-card.card-seen {
+  border-left: 5px solid #d69e2e;
+}
+
+.quiz-card.card-memorized {
+  border-left: 5px solid #2d6a4f;
 }
 
 .part-label {
@@ -138,16 +163,29 @@ body {
 
 .unit-label {
   font-size: 0.85em;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
-.review-badge {
-  background: #f0ad4e;
-  color: #000;
-  padding: 2px 8px;
+.status-badge {
+  padding: 2px 10px;
   border-radius: 4px;
   font-size: 0.8em;
   font-weight: 600;
+}
+
+.status-unseen {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.status-seen {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.status-memorized {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
 
 .consecutive-badge {
@@ -411,6 +449,12 @@ body {
   margin-top: auto;
   padding: 20px 0;
   text-align: center;
+}
+
+.session-info {
+  font-size: 0.85em;
+  color: #999;
+  margin-bottom: 8px;
 }
 
 .btn-reset {

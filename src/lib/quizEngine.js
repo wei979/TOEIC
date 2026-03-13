@@ -1,36 +1,40 @@
 /**
- * Quiz Engine - handles card selection logic.
+ * Quiz Engine - handles card selection with scheduling rules.
  *
- * Strategy:
- * - Pick from "unseen" pool: random part → random unit → random card
- * - Mix in "seen" (not yet memorized) cards for review
- * - ~60% chance new card, ~40% chance review (if review cards exist)
+ * Rules:
+ * 1. Every 20th card → force a "memorized" card for re-verification
+ * 2. After 5 consecutive unseen cards → force a "seen" card
+ * 3. Otherwise → random unseen card (random part → random unit)
+ *
+ * Fallback: if forced pool is empty, fall back to any available pool.
  */
 
 import { getAllProgress } from "./storage.js";
 
-const REVIEW_PROBABILITY = 0.4;
-
-function shuffleArray(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
+const MAX_CONSECUTIVE_UNSEEN = 5;
+const MEMORIZED_REVIEW_INTERVAL = 20;
 
 /**
  * Pick the next card to show.
  * @param {Array} cards - all cards from questions.json
- * @param {string|null} currentCardId - card to avoid picking again immediately
+ * @param {object} context - session context
+ * @param {string|null} context.currentCardId - card to avoid picking again
+ * @param {number} context.consecutiveUnseenCount - how many unseen cards shown in a row
+ * @param {number} context.totalShownCount - total cards shown this session
  * @returns {object|null} selected card, or null if all memorized
  */
-export function pickNextCard(cards, currentCardId = null) {
+export function pickNextCard(cards, context = {}) {
+  const {
+    currentCardId = null,
+    consecutiveUnseenCount = 0,
+    totalShownCount = 0,
+  } = context;
+
   const progress = getAllProgress();
 
   const unseen = [];
   const seen = [];
+  const memorized = [];
 
   for (const card of cards) {
     if (card.id === currentCardId) continue;
@@ -39,51 +43,76 @@ export function pickNextCard(cards, currentCardId = null) {
       unseen.push(card);
     } else if (p.status === "seen") {
       seen.push(card);
+    } else if (p.status === "memorized") {
+      memorized.push(card);
     }
-    // skip "memorized" cards
   }
 
+  // All done: no unseen or seen cards left
   if (unseen.length === 0 && seen.length === 0) {
-    return null; // all memorized!
+    // Only return memorized for scheduled review, not as "there's still work"
+    if (totalShownCount > 0 && totalShownCount % MEMORIZED_REVIEW_INTERVAL === 0 && memorized.length > 0) {
+      return pickFromPool(memorized, progress);
+    }
+    return null;
   }
 
-  // Decide: new card or review?
-  const doReview = seen.length > 0 && (unseen.length === 0 || Math.random() < REVIEW_PROBABILITY);
-
-  if (doReview) {
-    // Pick review card: prioritize oldest seen / lowest consecutive correct
-    const sorted = seen.sort((a, b) => {
-      const pa = progress[a.id] || {};
-      const pb = progress[b.id] || {};
-      // Lower consecutive correct first, then older lastSeen
-      if (pa.consecutiveCorrect !== pb.consecutiveCorrect) {
-        return pa.consecutiveCorrect - pb.consecutiveCorrect;
-      }
-      return (pa.lastSeen || 0) - (pb.lastSeen || 0);
-    });
-    // Pick from top 5 candidates randomly for variety
-    const candidates = sorted.slice(0, Math.min(5, sorted.length));
-    return candidates[Math.floor(Math.random() * candidates.length)];
+  // Rule 1: Every 20th card, force a memorized card for review
+  if (totalShownCount > 0 && totalShownCount % MEMORIZED_REVIEW_INTERVAL === 0 && memorized.length > 0) {
+    return pickFromPool(memorized, progress);
   }
 
-  // Pick new card: random part → random unit → random card
+  // Rule 2: After 5 consecutive unseen, force a seen card
+  if (consecutiveUnseenCount >= MAX_CONSECUTIVE_UNSEEN && seen.length > 0) {
+    return pickFromPool(seen, progress);
+  }
+
+  // Default: pick unseen, fall back to seen
+  if (unseen.length > 0) {
+    return pickUnseenCard(unseen);
+  }
+
+  if (seen.length > 0) {
+    return pickFromPool(seen, progress);
+  }
+
+  return null;
+}
+
+/**
+ * Pick from a pool prioritizing oldest / lowest consecutive correct.
+ */
+function pickFromPool(pool, progress) {
+  const sorted = [...pool].sort((a, b) => {
+    const pa = progress[a.id] || {};
+    const pb = progress[b.id] || {};
+    if ((pa.consecutiveCorrect || 0) !== (pb.consecutiveCorrect || 0)) {
+      return (pa.consecutiveCorrect || 0) - (pb.consecutiveCorrect || 0);
+    }
+    return (pa.lastSeen || 0) - (pb.lastSeen || 0);
+  });
+  const candidates = sorted.slice(0, Math.min(5, sorted.length));
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+/**
+ * Pick an unseen card: random part → random unit → random card.
+ */
+function pickUnseenCard(unseen) {
   const byPart = {};
   for (const card of unseen) {
-    const key = card.part;
-    if (!byPart[key]) byPart[key] = [];
-    byPart[key].push(card);
+    if (!byPart[card.part]) byPart[card.part] = [];
+    byPart[card.part].push(card);
   }
 
   const parts = Object.keys(byPart);
   const randomPart = parts[Math.floor(Math.random() * parts.length)];
   const partCards = byPart[randomPart];
 
-  // Group by unit within the selected part
   const byUnit = {};
   for (const card of partCards) {
-    const key = card.unit;
-    if (!byUnit[key]) byUnit[key] = [];
-    byUnit[key].push(card);
+    if (!byUnit[card.unit]) byUnit[card.unit] = [];
+    byUnit[card.unit].push(card);
   }
 
   const units = Object.keys(byUnit);
@@ -92,3 +121,5 @@ export function pickNextCard(cards, currentCardId = null) {
 
   return unitCards[Math.floor(Math.random() * unitCards.length)];
 }
+
+export { MAX_CONSECUTIVE_UNSEEN, MEMORIZED_REVIEW_INTERVAL };
