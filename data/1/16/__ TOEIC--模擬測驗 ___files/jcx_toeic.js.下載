@@ -1,0 +1,124 @@
+﻿
+function keepline_time() {
+    $.ajax({
+        url: "get_keepline.aspx",
+        type: "POST",
+        data: {},
+        dataType: "html",
+        success: function (ajax_res) {
+            if (ajax_res == '') {
+                alert('已登出系統,請關閉測驗,重新登入!!');
+            }
+        }
+    });
+
+
+
+    TimerID = setTimeout("keepline_time()", 60000);
+
+}
+
+function next_question2(fn,fn2,idx,idx2){
+//	if ((idx>0)&&(arr_ans[idx]==1)){
+		if (idx>0){
+			document.getElementById("tbl"+idx).style.display='none';
+			if (idx2>0){
+				document.getElementById("tbl"+idx2).style.display='none';
+			}
+		}
+		document.getElementById("tbl"+eval(idx+1)).style.display='';
+		if (idx2>0){
+			document.getElementById("tbl"+eval(idx2+1)).style.display='';
+		}
+//	}else{
+//		if (idx>0){
+//			alert('請作答');
+//		}
+//	}
+	if( navigator.appName == "Microsoft Internet Explorer"){
+			document.getElementById("sound").controls.Stop();
+		}else{
+			document.getElementById('audiotag1').pause();
+		}
+	if (fn!=''){
+		strValue = '<audio  controls="controls" preload="none" autoplay="false">'
+		strValue += '<source src="sound/' + fn + '" type="audio/mpeg" />'
+		strValue += '</audio>'
+		document.getElementById('inplayer'+eval(idx+1)).innerHTML = strValue;
+	}
+	if (fn2!=''){
+		strValue = '<audio  controls="controls" preload="none" autoplay="false">'
+		strValue += '<source src="sound/' + fn + '" type="audio/mpeg" />'
+		strValue += '</audio>'
+		document.getElementById('inplayer'+eval(idx2+1)).innerHTML = strValue;
+	}
+	
+
+}
+function next_question(fn,fn2,idx,idx2){
+	if (idx>0){
+		document.getElementById("tbl"+idx).style.display='none';
+		if (idx2>0){
+			document.getElementById("tbl"+idx2).style.display='none';
+		}
+	}
+	document.getElementById("tbl"+eval(idx+1)).style.display='';
+	if (idx2>0){
+			document.getElementById("tbl"+eval(idx2+1)).style.display='';
+	}
+	if( navigator.appName == "Microsoft Internet Explorer"){
+			document.getElementById("sound").controls.Stop();
+		}else{
+			document.getElementById('audiotag1').pause();
+		}
+	if (fn!=''){
+		strValue = '<audio  controls="controls" preload="none" autoplay="false">'
+		strValue += '<source src="sound/' + fn + '" type="audio/mpeg" />'
+		strValue += '</audio>'
+		document.getElementById('inplayer'+eval(idx+1)).innerHTML = strValue;
+	}
+	if (fn2!=''){
+		strValue = '<audio  controls="controls" preload="none" autoplay="false">'
+		strValue += '<source src="sound/' + fn + '" type="audio/mpeg" />'
+		strValue += '</audio>'
+		document.getElementById('inplayer'+eval(idx2+1)).innerHTML = strValue;
+	}
+	
+
+}
+function displayorhidden() {
+
+    if (dis == 1) {
+        dis = 2;
+		$("fieldset[id='jcx']").each(function () {
+		    $(this).hide();
+		});
+		$("label[id='lab']").each(function () {
+		    $(this).html('全部顯示');
+		});
+		
+		
+		
+	}else{
+        dis = 1;
+        $("fieldset[id='jcx']").each(function () {
+            $(this).show();
+        });
+        $("label[id='lab']").each(function () {
+            $(this).html('只顯示答錯題目');
+        });
+
+}}	
+function play_sound(objval,idx){
+         objval = "sound/" + objval
+	if(( navigator.appName == "Microsoft Internet Explorer")){
+		document.getElementById("sound").url = objval;
+		document.getElementById("sound").controls.Play();
+	}else{
+		document.getElementById('audiotag1').src = objval;
+		document.getElementById('audiotag1').play();
+	}
+	 
+}
+        
+           

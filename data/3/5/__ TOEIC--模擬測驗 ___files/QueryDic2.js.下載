@@ -1,0 +1,108 @@
+document.onmouseup = mouseUp;
+var dicwin;
+var oldstr;
+var onlineDictCheck;
+
+
+    onlineDictCheck = getCookie("onlineDictCheck");
+
+  //  if(onlineDictCheck==1){
+  //      document.all.onlinedict.checked=true;
+  //  }else{
+  //      document.all.onlinedict.checked=false;
+  //  }
+
+function parseCookie(){
+   var cookieList = document.cookie.split("; ");
+   var cookieArray = new Array();
+   for (var i = 0; i < cookieList.length; i++) {
+      var name = cookieList[i].split("=");
+      cookieArray[unescape(name[0])] = unescape(name[1]);
+   }
+   return cookieArray;
+}
+
+function getCookie(cookie){
+    var cookies = parseCookie();
+    if (null == cookies[cookie]) {
+       onlineDictCheck = 1;
+       document.cookie = "onlineDictCheck=1"; 
+    }
+    else {
+       if (cookies.onlineDictCheck == 1) {
+          onlineDictCheck = 1;
+       }
+       else {
+          onlineDictCheck = 0;
+       }
+    }
+    return onlineDictCheck;
+}
+
+function setCookie(){
+    var cookieValue="";
+    if(document.all.onlinedict.checked==true){
+        cookieValue = "onlineDictCheck=1";
+        onlineDictCheck = 1;
+    }else{
+        cookieValue = "onlineDictCheck=0";
+        onlineDictCheck = 0;
+    }
+    document.cookie = cookieValue;
+}
+
+function mouseUp() {
+
+//   var txtRange = document.selection.createRange();
+
+   var str = getSelectedText();
+
+   if (onlineDictCheck == 1) {
+      if (leftTrim(str) !=  "" && oldstr != str) {	
+         dicwin = window.open("","talk","scrollbars=yes,toolbar=no,direction=no,location=no,scrollbars=no,status=no,left=0,top=0,width=310,height=265,copyhistory=no");
+         dicwin.focus();
+         var rvalue = str.search("'");
+         if (rvalue == -1) {
+            dicwin.location = "../../dict/lookupdicn.aspx?word=" + str.toLowerCase();
+         }
+         else {
+            str = str.substr(0,rvalue);
+            dicwin.location = "../../dict/lookupdicn.aspx?word=" + str.toLowerCase();
+         }
+         
+      }
+      oldstr = str;
+   }
+}
+function getSelectedText() {
+  if (window.getSelection) {
+    //這個方法是比較標準的
+    return window.getSelection().toString();
+  } else if (document.getSelection) {
+    //這是個較古老的簡易方法
+    return document.getSelection();
+  } else if (document.selection) {
+    //這是給IE用的，
+    // We do not document the IE selection property or TextRange objects.
+    return document.selection.createRange().text;
+  }
+}
+
+function leftTrim(str) {
+   var CheckStr = "";
+   var flag = 0;
+
+   for (var j = 0;  j < str.length;  j++) {
+       if (flag == 0) {
+          if (str.charAt(j) != " ") {
+             CheckStr = CheckStr + str.charAt(j);  
+             flag = 1;
+          }
+       } else {
+          CheckStr = CheckStr + str.charAt(j);
+       }
+    }
+    return CheckStr;
+}
+
+
