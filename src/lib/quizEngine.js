@@ -3,15 +3,15 @@
  *
  * Rules:
  * 1. Every 20th card → force a "memorized" card for re-verification
- * 2. After 5 consecutive unseen cards → force a "seen" card
- * 3. Otherwise → random unseen card (random part → random unit)
+ * 2. Alternate 1:1 between unseen and seen cards (when seen cards exist)
+ * 3. Review picks the oldest-seen card (most likely to be forgotten)
  *
  * Fallback: if forced pool is empty, fall back to any available pool.
  */
 
 import { getAllProgress } from "./storage.js";
 
-const MAX_CONSECUTIVE_UNSEEN = 5;
+const MAX_CONSECUTIVE_UNSEEN = 1;
 const MEMORIZED_REVIEW_INTERVAL = 20;
 
 /**
@@ -50,21 +50,20 @@ export function pickNextCard(cards, context = {}) {
 
   // All done: no unseen or seen cards left
   if (unseen.length === 0 && seen.length === 0) {
-    // Only return memorized for scheduled review, not as "there's still work"
     if (totalShownCount > 0 && totalShownCount % MEMORIZED_REVIEW_INTERVAL === 0 && memorized.length > 0) {
-      return pickFromPool(memorized, progress);
+      return pickOldest(memorized, progress);
     }
     return null;
   }
 
   // Rule 1: Every 20th card, force a memorized card for review
   if (totalShownCount > 0 && totalShownCount % MEMORIZED_REVIEW_INTERVAL === 0 && memorized.length > 0) {
-    return pickFromPool(memorized, progress);
+    return pickOldest(memorized, progress);
   }
 
-  // Rule 2: After 5 consecutive unseen, force a seen card
+  // Rule 2: Alternate 1:1 — after 1 unseen, force a seen card
   if (consecutiveUnseenCount >= MAX_CONSECUTIVE_UNSEEN && seen.length > 0) {
-    return pickFromPool(seen, progress);
+    return pickOldest(seen, progress);
   }
 
   // Default: pick unseen, fall back to seen
@@ -73,26 +72,23 @@ export function pickNextCard(cards, context = {}) {
   }
 
   if (seen.length > 0) {
-    return pickFromPool(seen, progress);
+    return pickOldest(seen, progress);
   }
 
   return null;
 }
 
 /**
- * Pick from a pool prioritizing oldest / lowest consecutive correct.
+ * Pick the oldest-seen card from a pool (most likely to be forgotten).
+ * Deterministic: always picks the card with the oldest lastSeen timestamp.
  */
-function pickFromPool(pool, progress) {
+function pickOldest(pool, progress) {
   const sorted = [...pool].sort((a, b) => {
     const pa = progress[a.id] || {};
     const pb = progress[b.id] || {};
-    if ((pa.consecutiveCorrect || 0) !== (pb.consecutiveCorrect || 0)) {
-      return (pa.consecutiveCorrect || 0) - (pb.consecutiveCorrect || 0);
-    }
     return (pa.lastSeen || 0) - (pb.lastSeen || 0);
   });
-  const candidates = sorted.slice(0, Math.min(5, sorted.length));
-  return candidates[Math.floor(Math.random() * candidates.length)];
+  return sorted[0];
 }
 
 /**
