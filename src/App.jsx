@@ -17,6 +17,7 @@ export default function App() {
 
   // Session counters for scheduling
   const [consecutiveUnseen, setConsecutiveUnseen] = useState(0);
+  const [consecutiveSeen, setConsecutiveSeen] = useState(0);
   const [totalShown, setTotalShown] = useState(0);
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function App() {
     const card = pickNextCard(cards, {
       currentCardId: currentCard?.id,
       consecutiveUnseenCount: consecutiveUnseen,
+      consecutiveSeenCount: consecutiveSeen,
       totalShownCount: totalShown,
     });
     setCurrentCard(card);
@@ -47,11 +49,17 @@ export default function App() {
       setTotalShown((n) => n + 1);
       if (cp.status === "unseen") {
         setConsecutiveUnseen((n) => n + 1);
-      } else {
+        setConsecutiveSeen(0);
+      } else if (cp.status === "seen") {
+        setConsecutiveSeen((n) => n + 1);
         setConsecutiveUnseen(0);
+      } else {
+        // memorized review resets both
+        setConsecutiveUnseen(0);
+        setConsecutiveSeen(0);
       }
     }
-  }, [cards, currentCard?.id, consecutiveUnseen, totalShown]);
+  }, [cards, currentCard?.id, consecutiveUnseen, consecutiveSeen, totalShown]);
 
   useEffect(() => {
     if (!loading && cards.length > 0 && !currentCard) {
@@ -73,6 +81,7 @@ export default function App() {
     setCurrentCard(null);
     setResult(null);
     setConsecutiveUnseen(0);
+    setConsecutiveSeen(0);
     setTotalShown(0);
     setTimeout(() => nextCard(), 50);
   }
