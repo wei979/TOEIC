@@ -21,7 +21,7 @@ export default function App() {
   const [totalShown, setTotalShown] = useState(0);
 
   useEffect(() => {
-    fetch("/questions.json")
+    fetch(import.meta.env.BASE_URL + "questions.json")
       .then((r) => r.json())
       .then((data) => {
         setCards(data.cards);
